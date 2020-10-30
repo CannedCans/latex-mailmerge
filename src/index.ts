@@ -1,5 +1,12 @@
 
+import fs from "fs";
+
 export type KeywordDict = {[id: string]: string};
+
+interface Instance {
+    keywords: KeywordDict,
+    outputFileName: string | null
+}
 
 /**
  * Clone inString n times and return the resulting array
@@ -36,16 +43,20 @@ export class MailMerge {
     private _keywords: string[] = [];
 
     /** One for each output */
-    private _instances: KeywordDict[] = [];
+    private _instances: Instance[] = [];
 
     /**
      * Add an expected replacement combination
      * 
-     * @param inst 
+     * @param inst The keywords themselves
+     * @param fileName Where the output will eventually be written, optional, if not included no writing is possible
      * @example add({"%%hello": "replaced text"})
      */
-    public add(inst: KeywordDict) {
-        this._instances.push({...inst});
+    public add(inst: KeywordDict, fileName: string | null = null) {
+        this._instances.push({
+            outputFileName: fileName,
+            keywords: {...inst}
+        });
 
         for (let i in inst) {
             if (!(i in this._keywords)) {
@@ -62,9 +73,13 @@ export class MailMerge {
      * 
      * If a keyword does not appear in an instance, nothing will happen for that keyword.
      * 
+     * Writes output to the appropriate filenames unless...
+     * 
+     * @param skipWritingToFile optional argument, defaults to false, if true doesn't write to files
+     * 
      * @throws an error if the template is not set
      */
-    public processAll(): string[] {
+    public processAll(skipWritingToFile: boolean = false): string[] {
         if (this._template === null) {
             throw new Error('Template not set! Use template(string) to set it first!')
         }
@@ -73,9 +88,17 @@ export class MailMerge {
 
         for (let keyWord of this._keywords) {
             for (let index = 0; index < templateClones.length; index++) {
-                if (keyWord in this._instances[index]) {
+                if (keyWord in this._instances[index].keywords) {
+                    templateClones[index] = templateClones[index].replace(keyWord, this._instances[index].keywords[keyWord]);
+                }
+            }
+        }
 
-                    templateClones[index].replace(keyWord, this._instances[index][keyWord]);
+        if (!(skipWritingToFile)) {
+            for (let index = 0; index < templateClones.length; index++) {
+                const itm = this._instances[index];
+                if (itm.outputFileName !== null) {
+                    fs.writeFileSync(itm.outputFileName, templateClones[index]);   
                 }
             }
         }
