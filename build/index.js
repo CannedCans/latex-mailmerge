@@ -95,7 +95,6 @@ var MailMerge = /** @class */ (function () {
             var keyWord = _a[_i];
             for (var index = 0; index < templateClones.length; index++) {
                 if (keyWord in this._instances[index].keywords) {
-                    console.log(keyWord);
                     templateClones[index] = templateClones[index].replace(keyWord, this._instances[index].keywords[keyWord]);
                 }
             }
